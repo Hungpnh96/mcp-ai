@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MCP-AI Control Center</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: radial-gradient(circle at top, rgba(37, 99, 235, 0.15), transparent 50%), #020617;
+      color: #e5e7eb;
+      min-height: 100vh;
+    }
+    header {
+      background: rgba(3, 7, 18, 0.95);
+      border-bottom: 1px solid rgba(30, 41, 59, 0.8);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .container {
+      width: min(1200px, 100%);
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 0;
+      gap: 18px;
+    }
+    .logo { font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: #38bdf8; font-size: 15px; }
+    nav a {
+      color: #cbd5f5;
+      text-decoration: none;
+      font-weight: 600;
+      padding: 10px 20px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      transition: background 120ms ease, color 120ms ease;
+    }
+    nav a:hover { background: rgba(148, 163, 184, 0.15); color: #fff; }
+    main { padding: 48px 0 64px; }
+    h1 { font-size: clamp(28px, 5vw, 38px); margin-bottom: 12px; }
+    p.lead { margin: 0 0 24px; color: #9ca3af; max-width: 640px; }
+    .grid { display: grid; gap: 20px; }
+    .grid-3 { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+    .grid-2 { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+    .card {
+      background: #080f25;
+      border: 1px solid #162133;
+      border-radius: 18px;
+      padding: 20px;
+      box-shadow: 0 20px 40px rgba(2, 6, 23, 0.5);
+    }
+    .card h3 { margin: 0 0 8px; font-size: 16px; color: #a5b4fc; letter-spacing: .04em; text-transform: uppercase; }
+    .card p { margin: 0; color: #9ca3af; font-size: 14px; }
+    button.primary {
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      color: #fff;
+      border: 0;
+      border-radius: 12px;
+      padding: 12px 16px;
+      font-weight: 600;
+      cursor: pointer;
+      width: fit-content;
+      box-shadow: 0 15px 30px rgba(99, 102, 241, 0.4);
+    }
+    button.secondary {
+      background: transparent;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      color: #cbd5f5;
+      border-radius: 12px;
+      padding: 10px 14px;
+      cursor: pointer;
+    }
+    button:disabled { opacity: 0.6; cursor: wait; }
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .status-pill span { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+    .status-pill.ok span { background: #34d399; }
+    .status-pill.fail span { background: #f87171; }
+    .list { margin: 0; padding: 0; list-style: none; }
+    .list li { padding: 10px 0; border-bottom: 1px solid rgba(15, 23, 42, 0.7); }
+    .list li:last-child { border-bottom: 0; }
+    .list small { display: block; color: #6b7280; }
+    code { background: rgba(15, 23, 42, 0.6); padding: 2px 6px; border-radius: 6px; }
+    .cta-row { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 18px; }
+    .news-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+    .news-list li { border: 1px solid rgba(148, 163, 184, 0.15); border-radius: 12px; padding: 12px 14px; background: rgba(15, 23, 42, 0.6); }
+    .news-list li h4 { margin: 0 0 8px; font-size: 15px; color: #bfdbfe; }
+    .news-list li p { margin: 0 0 6px; color: #94a3b8; font-size: 13px; }
+    .news-list li a { color: #60a5fa; text-decoration: none; font-size: 13px; }
+    .news-list li a:hover { text-decoration: underline; }
+    footer { text-align: center; color: #6b7280; padding: 32px 0; font-size: 14px; }
+    @media (max-width: 600px) {
+      nav { flex-direction: column; }
+      nav a { width: 100%; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <nav>
+        <div class="logo">MCP-AI · control panel</div>
+        <a href="/api-test.html">Mở MCP-AI Test Lab</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section>
+      <h1>MCP-AI Control Center</h1>
+      <p class="lead">Tổng hợp nhanh các dịch vụ đang chạy trong MCP-AI stack (âm nhạc, tin tức, adapter). Các hành động chi tiết nằm ở trang kiểm thử.</p>
+      <div class="cta-row">
+        <button class="primary" id="refreshHealth">Ping Health</button>
+        <a class="secondary" href="/api-test.html" style="display:inline-flex; align-items:center; gap:6px; text-decoration:none;">→ Mở MCP-AI Test Lab</a>
+      </div>
+    </section>
+
+    <section style="margin-top:40px;" class="grid grid-3">
+      <div class="card">
+        <h3>Trạng thái server</h3>
+        <div id="healthStatus" class="status-pill fail" style="margin:12px 0 16px;">
+          <span></span>
+          Chưa kiểm tra
+        </div>
+        <p id="healthMeta">Nhấn “Kiểm tra Health” để gọi <code>/health</code>.</p>
+      </div>
+
+      <div class="card">
+        <h3>Thông tin triển khai</h3>
+        <ul class="list">
+          <li><strong>Env:</strong> Local Docker</li>
+          <li><strong>mp3-api:</strong> Node 18 · port <code>8002</code></li>
+          <li><strong>adapter:</strong> Node 18 · port <code>5005</code></li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>Module hiện có</h3>
+        <ul class="list">
+          <li>Âm nhạc: proxy ZingMp3</li>
+          <li>Tin tức: VNExpress RSS</li>
+          <li>Adapter: Xiaozhi bridge</li>
+        </ul>
+      </div>
+    </section>
+
+    <section style="margin-top:40px;" class="grid grid-3">
+      <div class="card">
+        <h3>Dịch vụ chính</h3>
+        <ul class="list">
+          <li><strong>Music Proxy:</strong> ZingMp3 API</li>
+          <li><strong>News Proxy:</strong> VNExpress RSS</li>
+          <li><strong>Adapter:</strong> Xiaozhi format</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Endpoint tiêu biểu</h3>
+        <ul class="list">
+          <li>GET /api/search</li>
+          <li>GET /api/song, /api/song/stream</li>
+          <li>GET /api/news/latest, /api/news/category</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Hướng dẫn nhanh</h3>
+        <ul class="list">
+          <li>Kiểm thử → mở MCP-AI Test Lab</li>
+          <li>API doc → README</li>
+          <li>Giám sát → dùng health check + logs</li>
+        </ul>
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    © 2025 MCP-AI Control Center · Internal use only
+  </footer>
+
+  <script>
+    const healthStatus = document.getElementById('healthStatus');
+    const healthMeta = document.getElementById('healthMeta');
+    const refreshHealthBtn = document.getElementById('refreshHealth');
+
+    function setStatus(ok, message) {
+      healthStatus.classList.toggle('ok', ok);
+      healthStatus.classList.toggle('fail', !ok);
+      healthStatus.innerHTML = `<span></span>${ok ? 'Hoạt động' : 'Lỗi'}`;
+      healthMeta.textContent = message;
+    }
+
+    async function fetchJson(path, params) {
+      const url = new URL(path, window.location.origin);
+      if (params) Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+      const res = await fetch(url);
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`HTTP ${res.status}: ${text}`);
+      }
+      return res.json();
+    }
+
+    refreshHealthBtn?.addEventListener('click', async () => {
+      refreshHealthBtn.disabled = true;
+      try {
+        const data = await fetchJson('/health');
+        setStatus(Boolean(data?.ok), `Response: ${JSON.stringify(data)}`);
+      } catch (err) {
+        setStatus(false, String(err));
+      } finally {
+        refreshHealthBtn.disabled = false;
+      }
+    });
+
+  </script>
+</body>
+</html>
