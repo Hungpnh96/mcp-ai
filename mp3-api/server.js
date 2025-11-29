@@ -1,6 +1,8 @@
 const express = require('express');
 const path = require('path');
 const axios = require('axios');
+const cheerio = require('cheerio');
+const solarlunar = require('solarlunar');
 const { ZingMp3 } = require('./dist');
 
 const app = express();
@@ -67,6 +69,48 @@ async function fetchNewsFeed(rssUrl) {
     headers: { 'User-Agent': 'mp3-proxy-news/1.0' }
   });
   return parseRss(data);
+}
+
+async function fetchArticleContent(url) {
+  const { data } = await axios.get(url, {
+    timeout: 10000,
+    headers: { 'User-Agent': 'mp3-proxy-reader/1.0' }
+  });
+  const $ = cheerio.load(data);
+  const lead = $('.summary, .lead_detail').first().text().trim();
+  const bodyParagraphs = [];
+  $('.fck_detail p').each((_, el) => {
+    const text = $(el).text().trim();
+    if (text) bodyParagraphs.push(text);
+  });
+  return {
+    lead,
+    content: bodyParagraphs,
+  };
+}
+
+async function fetchWeather(city) {
+  const url = 'https://api.open-meteo.com/v1/forecast';
+  const mapping = {
+    'ho-chi-minh': { latitude: 10.82, longitude: 106.63 },
+    'hanoi': { latitude: 21.03, longitude: 105.85 },
+    'danang': { latitude: 16.07, longitude: 108.22 },
+  };
+  const key = city.toLowerCase().replace(/\s+/g, '-');
+  const coords = mapping[key] || mapping['ho-chi-minh'];
+  const { data } = await axios.get(url, {
+    params: {
+      latitude: coords.latitude,
+      longitude: coords.longitude,
+      current_weather: true,
+      timezone: 'auto'
+    },
+    timeout: 8000,
+  });
+  return {
+    city: key,
+    current: data?.current_weather,
+  };
 }
 
 // health
@@ -260,6 +304,47 @@ app.get('/api/news/category', async (req, res) => {
     res.json({ source: 'vnexpress', category: key, items });
   } catch (e) {
     res.status(500).json({ error: e?.message || 'Không lấy được tin theo mục' });
+  }
+});
+
+app.get('/api/news/read', async (req, res) => {
+  try {
+    const { url } = req.query;
+    if (!url) return res.status(400).json({ error: 'Missing url' });
+    const article = await fetchArticleContent(String(url));
+    res.json({ url, ...article });
+  } catch (e) {
+    res.status(500).json({ error: e?.message || 'Không đọc được bài viết' });
+  }
+});
+
+app.get('/api/weather/current', async (req, res) => {
+  try {
+    const { city = 'Ho Chi Minh' } = req.query;
+    const data = await fetchWeather(String(city));
+    res.json(data);
+  } catch (e) {
+    res.status(500).json({ error: e?.message || 'Không lấy được thời tiết' });
+  }
+});
+
+app.get('/api/lunar-calendar', (req, res) => {
+  try {
+    const now = new Date();
+    const date = req.query.date
+      ? new Date(String(req.query.date))
+      : now;
+    const lunar = solarlunar.solar2lunar(date.getFullYear(), date.getMonth() + 1, date.getDate());
+    res.json({
+      solar: {
+        year: date.getFullYear(),
+        month: date.getMonth() + 1,
+        day: date.getDate(),
+      },
+      lunar,
+    });
+  } catch (e) {
+    res.status(500).json({ error: e?.message || 'Không lấy được lịch âm' });
   }
 });
 

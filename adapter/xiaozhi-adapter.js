@@ -8,7 +8,30 @@ const axios = require('axios');
 
 const app = express();
 const PORT = process.env.PORT || 5006;
-const MP3_API_URL = process.env.MP3_API_URL || 'http://mp3-api:8002';
+const MP3_API_URL = process.env.MP3_API_URL || 'https://mcp.hungpnh.dev';
+const ADAPTER_PUBLIC_URL = process.env.ADAPTER_PUBLIC_URL || '';
+const MUSIC_TOKEN = process.env.MUSIC_TOKEN || process.env.MP3_API_TOKEN || '';
+
+const FORWARD_HEADERS = ['token', 'x-mac-address', 'x-chip-id', 'x-timestamp', 'x-dynamic-key'];
+
+function buildAuthHeaders(req) {
+    const headers = {
+        'User-Agent': 'Xiaozhi-Adapter/1.0'
+    };
+
+    if (MUSIC_TOKEN) {
+        headers['token'] = MUSIC_TOKEN;
+    }
+
+    FORWARD_HEADERS.forEach((key) => {
+        const value = req.header(key);
+        if (value) {
+            headers[key] = value;
+        }
+    });
+
+    return headers;
+}
 
 // CACHE ĐƠN GIẢN
 const audioCache = new Map(); // {songId: Buffer}
@@ -29,7 +52,7 @@ app.get('/stream_pcm', async (req, res) => {
         
         const searchResponse = await axios.get(searchUrl, {
             timeout: 15000,
-            headers: { 'User-Agent': 'Xiaozhi-Adapter/1.0' }
+            headers: buildAuthHeaders(req)
         });
 
         let songs = [];
@@ -74,7 +97,7 @@ app.get('/stream_pcm', async (req, res) => {
                         responseType: 'arraybuffer',
                         maxRedirects: 5,
                         timeout: 120000,
-                        headers: { 'User-Agent': 'Xiaozhi-Adapter/1.0' }
+                        headers: buildAuthHeaders(req)
                     });
 
                     const audioBuffer = Buffer.from(audioResponse.data);
@@ -101,12 +124,13 @@ app.get('/stream_pcm', async (req, res) => {
             results.push({
                 title: songItem.title || song,
                 artist: songItem.artistsNames || artist || 'Unknown',
+                song_id: songId,
+                album: songItem?.album?.title || '',
+                duration: songItem.duration || 0,
+                thumbnail: songItem.thumbnailM || songItem.thumbnail || '',
                 // ✅ RELATIVE PATH - ESP32 sẽ tự ghép với base_url
                 audio_url: `/proxy_audio?id=${songId}`,
-                lyric_url: `/proxy_lyric?id=${songId}`,
-                thumbnail: songItem.thumbnail || songItem.thumbnailM || '',
-                duration: songItem.duration || 0,
-                language: 'unknown'
+                lyric_url: `/proxy_lyric?id=${songId}`
             });
         }
 
@@ -116,12 +140,29 @@ app.get('/stream_pcm', async (req, res) => {
 
         // ===== FORMAT RESPONSE ĐƠN GIẢN - ESP32 GỐC CHỈ XỬ LÝ 1 BÀI =====
         const response = results[0];
+        const absoluteAudio = ADAPTER_PUBLIC_URL ? `${ADAPTER_PUBLIC_URL}${response.audio_url}` : null;
+        const absoluteLyric = ADAPTER_PUBLIC_URL ? `${ADAPTER_PUBLIC_URL}${response.lyric_url}` : null;
 
-        console.log(`✅ Returning song with RELATIVE paths`);
-        console.log(`   Audio: ${response.audio_url}`);
-        console.log(`   Lyric: ${response.lyric_url}`);
-        
-        res.json(response);
+        console.log(`✅ Returning song with paths`, response);
+
+        res.json({
+            title: response.title,
+            artist: response.artist,
+            song_id: response.song_id,
+            album: response.album,
+            duration: response.duration,
+            thumbnail: response.thumbnail,
+            source: 'zingmp3',
+            request_meta: {
+                song,
+                artist,
+                query: searchQuery
+            },
+            audio_url: response.audio_url,
+            audio_url_absolute: absoluteAudio,
+            lyric_url: response.lyric_url,
+            lyric_url_absolute: absoluteLyric
+        });
 
     } catch (error) {
         console.error('❌ Error:', error.message);
@@ -161,7 +202,8 @@ app.get('/proxy_audio', async (req, res) => {
                 method: 'GET',
                 url: streamUrl,
                 responseType: 'arraybuffer',
-                timeout: 120000
+                timeout: 120000,
+                headers: buildAuthHeaders(req)
             });
 
             const audioBuffer = Buffer.from(audioResponse.data);
@@ -193,7 +235,7 @@ app.get('/proxy_lyric', async (req, res) => {
         console.log(`📝 Serving lyric for song ID: ${id}`);
 
         const lyricUrl = `${MP3_API_URL}/api/lyric?id=${id}`;
-        const response = await axios.get(lyricUrl, { timeout: 10000 });
+        const response = await axios.get(lyricUrl, { timeout: 10000, headers: buildAuthHeaders(req) });
 
         if (response.data && response.data.err === 0 && response.data.data) {
             const lyricData = response.data.data;

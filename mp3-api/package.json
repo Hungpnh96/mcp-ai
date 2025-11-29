@@ -27,6 +27,8 @@
   },
   "dependencies": {
     "axios": "^0.24.0",
-    "express": "^5.1.0"
+    "cheerio": "1.0.0-rc.12",
+    "express": "^5.1.0",
+    "solarlunar": "^2.0.7"
   }
 }
