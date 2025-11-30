@@ -7,9 +7,74 @@ const { ZingMp3 } = require('./dist');
 
 const app = express();
 const PORT = process.env.PORT || 8002;
+const MUSIC_TOKEN = process.env.MUSIC_TOKEN || process.env.MP3_API_TOKEN || '';
+const ADAPTER_PUBLIC_URL = process.env.ADAPTER_PUBLIC_URL || '';
+const ADAPTER_CACHE_LIMIT = Number(process.env.ADAPTER_CACHE_LIMIT || 10);
+const STREAM_TIMEOUT_MS = Number(process.env.ADAPTER_STREAM_TIMEOUT || 120000);
+const audioCache = new Map();
+const inflightDownloads = new Map();
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+
+function trimCache() {
+  while (audioCache.size > ADAPTER_CACHE_LIMIT && audioCache.size > 0) {
+    const firstKey = audioCache.keys().next().value;
+    audioCache.delete(firstKey);
+  }
+}
+
+async function ensureAudioCached(songId) {
+  if (!songId) throw new Error('Missing songId');
+  if (audioCache.has(songId)) return audioCache.get(songId);
+  if (inflightDownloads.has(songId)) return inflightDownloads.get(songId);
+
+  const downloadPromise = (async () => {
+    const songData = await ZingMp3.getSong(String(songId));
+    const data = songData?.data || {};
+    const streamUrl = data['128'] || data['320'] || data['lossless'];
+    if (!streamUrl) throw new Error('Stream URL not available');
+    const response = await axios.get(streamUrl, {
+      responseType: 'arraybuffer',
+      timeout: STREAM_TIMEOUT_MS,
+      headers: MUSIC_TOKEN ? { token: MUSIC_TOKEN } : undefined,
+    });
+    const buffer = Buffer.from(response.data);
+    audioCache.set(songId, buffer);
+    trimCache();
+    inflightDownloads.delete(songId);
+    return buffer;
+  })().catch((err) => {
+    inflightDownloads.delete(songId);
+    throw err;
+  });
+
+  inflightDownloads.set(songId, downloadPromise);
+  return downloadPromise;
+}
+
+function buildAdapterResponse(songItem, meta) {
+  const songId = songItem?.encodeId;
+  const payload = {
+    title: songItem?.title || meta?.song || 'Unknown',
+    artist: songItem?.artistsNames || meta?.artist || 'Unknown',
+    song_id: songId,
+    album: songItem?.album?.title || '',
+    duration: songItem?.duration || 0,
+    thumbnail: songItem?.thumbnailM || songItem?.thumbnail || '',
+    source: 'zingmp3',
+    request_meta: meta,
+    audio_url: `/proxy_audio?id=${songId}`,
+    lyric_url: `/proxy_lyric?id=${songId}`,
+  };
+
+  if (ADAPTER_PUBLIC_URL) {
+    payload.audio_url_absolute = `${ADAPTER_PUBLIC_URL}${payload.audio_url}`;
+    payload.lyric_url_absolute = `${ADAPTER_PUBLIC_URL}${payload.lyric_url}`;
+  }
+
+  return payload;
+}
 
 const VNEXPRESS_RSS = {
   latest: 'https://vnexpress.net/rss/tin-moi-nhat.rss',
@@ -115,7 +180,11 @@ async function fetchWeather(city) {
 
 // health
 app.get('/health', (_req, res) => {
-  res.json({ ok: true });
+  res.json({
+    ok: true,
+    adapter_cache_size: audioCache.size,
+    cached_song_ids: Array.from(audioCache.keys()),
+  });
 });
 
 // basic demos
@@ -235,6 +304,82 @@ app.get('/api/lyric', async (req, res) => {
     res.json(data);
   } catch (e) {
     res.status(e?.response?.status || 500).json({ error: e?.message || 'Internal Error' });
+  }
+});
+
+app.get('/stream_pcm', async (req, res) => {
+  try {
+    const { song, artist = '' } = req.query;
+    if (!song) return res.status(400).json({ error: 'Missing song parameter' });
+
+    const query = artist ? `${song} ${artist}` : song;
+    const searchResponse = await ZingMp3.search(String(query));
+    const songs = searchResponse?.data?.songs || [];
+    const target = songs[0];
+
+    if (!target?.encodeId) {
+      return res.status(404).json({ error: 'Song not found', title: song, artist: artist || 'Unknown' });
+    }
+
+    await ensureAudioCached(target.encodeId);
+    const payload = buildAdapterResponse(target, { song, artist, query });
+    res.json(payload);
+  } catch (e) {
+    console.error('stream_pcm error', e.message);
+    res.status(500).json({ error: e?.message || 'Internal server error' });
+  }
+});
+
+app.get('/proxy_audio', async (req, res) => {
+  try {
+    const { id } = req.query;
+    if (!id) return res.status(400).send('Missing id parameter');
+    const buffer = await ensureAudioCached(String(id));
+    res.set({
+      'Content-Type': 'audio/mpeg',
+      'Content-Length': buffer.length,
+      'Accept-Ranges': 'bytes',
+    });
+    res.send(buffer);
+  } catch (e) {
+    console.error('proxy_audio error', e.message);
+    res.status(500).send('Failed to proxy audio');
+  }
+});
+
+app.get('/proxy_lyric', async (req, res) => {
+  try {
+    const { id } = req.query;
+    if (!id) return res.status(400).send('Missing id parameter');
+    const lyricResponse = await ZingMp3.getLyric(String(id));
+    const lyricData = lyricResponse?.data;
+
+    if (lyricData?.file) {
+      const lyricContent = await axios.get(lyricData.file);
+      res.set('Content-Type', 'text/plain; charset=utf-8');
+      return res.send(lyricContent.data);
+    }
+
+    if (Array.isArray(lyricData?.sentences)) {
+      const lines = [];
+      lyricData.sentences.forEach((sentence) => {
+        const words = sentence?.words || [];
+        words.forEach((word) => {
+          const time = word.startTime || 0;
+          const minutes = Math.floor(time / 60000);
+          const seconds = Math.floor((time % 60000) / 1000);
+          const ms = Math.floor((time % 1000) / 10);
+          lines.push(`[${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(ms).padStart(2, '0')}]${word.data}`);
+        });
+      });
+      res.set('Content-Type', 'text/plain; charset=utf-8');
+      return res.send(lines.join('\n'));
+    }
+
+    res.status(404).send('Lyric not found');
+  } catch (e) {
+    console.error('proxy_lyric error', e.message);
+    res.status(404).send('Lyric not found');
   }
 });
 
