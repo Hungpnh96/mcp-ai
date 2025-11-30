@@ -11,7 +11,7 @@
     <div class="container">
       <nav>
         <div class="logo">MCP-AI · control panel</div>
-        <a href="/api-test.html">Mở MCP-AI Test Lab</a>
+        <button class="secondary" id="btnOpenRadio">Radio</button>
       </nav>
     </div>
   </header>
@@ -19,10 +19,41 @@
   <main class="container">
     <section>
       <h1>MCP-AI Control Center</h1>
-      <p class="lead">Tổng hợp nhanh các dịch vụ đang chạy trong MCP-AI stack (âm nhạc, tin tức, adapter). Các hành động chi tiết nằm ở trang kiểm thử.</p>
+      <p class="lead">Tổng hợp nhanh các dịch vụ đang chạy trong MCP-AI stack (âm nhạc, radio VOV, tin tức, adapter). ESP32 và dashboard đều dùng chung endpoint.</p>
       <div class="cta-row">
         <button class="primary" id="refreshHealth">Ping Health</button>
-        <a class="secondary" href="/api-test.html" style="display:inline-flex; align-items:center; gap:6px; text-decoration:none;">→ Mở MCP-AI Test Lab</a>
+        <button class="secondary" id="btnRadioStations">Danh sách Radio</button>
+      </div>
+    </section>
+
+    <section class="module-section" data-module="radio">
+      <div class="card">
+        <div class="group-title">Radio VOV · Proxy AAC</div>
+        <div class="row">
+          <div>
+            <label for="radioQuery">Tên kênh hoặc từ khóa</label>
+            <input id="radioQuery" type="text" placeholder="vd: VOV giao thông hoặc VOV1" />
+          </div>
+          <div class="row-actions">
+            <button class="primary" id="btnRadioSearch">Gọi /radio/play</button>
+            <button class="secondary" id="btnRadioStationsInline">Danh sách</button>
+          </div>
+        </div>
+        <pre class="curl" id="curlRadioPlay">curl "http://localhost:8002/radio/play?station=VOV1"</pre>
+      </div>
+      <div class="card">
+        <div class="row" style="gap:12px; flex-wrap:wrap; align-items:flex-end;">
+          <div style="flex:1 1 260px;">
+            <label for="radioStationSelect">Chọn kênh</label>
+            <select id="radioStationSelect" style="width:100%; padding:12px 14px; border-radius:12px; background:#030712; border:1px solid #374151; color:#e5e7eb;"></select>
+          </div>
+          <button class="secondary" id="btnRadioPlaySelected">Phát</button>
+        </div>
+        <audio id="radioPlayer" class="hidden" controls></audio>
+      </div>
+      <div class="card">
+        <label>Kết quả radio</label>
+        <pre id="radioOut">(chưa có dữ liệu)</pre>
       </div>
     </section>
 
@@ -39,24 +70,28 @@
       <div class="card">
         <h3>Thông tin triển khai</h3>
         <ul class="list">
-          <li><strong>Env:</strong> Local Docker</li>
+          <li><strong>Env:</strong> Local Docker / VPS</li>
           <li><strong>mp3-api:</strong> Node 18 · port <code>8002</code></li>
-          <li><strong>adapter:</strong> Node 18 · port <code>5005</code></li>
+          <li><strong>Radio:</strong> Proxy AAC từ VOV</li>
         </ul>
       </div>
 
       <div class="card">
-        <h3>Module hiện có</h3>
-        <ul class="list">
-          <li>Âm nhạc: proxy ZingMp3</li>
-          <li>Tin tức: VNExpress RSS</li>
-          <li>Adapter: Xiaozhi bridge</li>
-        </ul>
+        <h3>Radio nhanh</h3>
+        <div class="radio-quick">
+          <label for="radioStationInput">Tên kênh / từ khóa</label>
+          <input id="radioStationInput" type="text" placeholder="ví dụ: VOV giao thông" />
+          <div class="row-actions" style="margin-top:12px;">
+            <button class="primary" id="btnRadioPlay">Gọi /radio/play</button>
+            <button class="secondary" id="btnRadioList">Lấy danh sách</button>
+          </div>
+        </div>
       </div>
     </section>
 
     <div class="module-nav" role="tablist">
       <button class="active" data-target="music">Music · Âm nhạc</button>
+      <button data-target="radio">Radio · VOV</button>
       <button data-target="news">News · Tin tức</button>
       <button data-target="weather">Weather · Thời tiết</button>
       <button data-target="calendar">Calendar · Lịch</button>

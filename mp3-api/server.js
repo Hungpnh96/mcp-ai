@@ -11,8 +11,180 @@ const MUSIC_TOKEN = process.env.MUSIC_TOKEN || process.env.MP3_API_TOKEN || '';
 const ADAPTER_PUBLIC_URL = process.env.ADAPTER_PUBLIC_URL || '';
 const ADAPTER_CACHE_LIMIT = Number(process.env.ADAPTER_CACHE_LIMIT || 10);
 const STREAM_TIMEOUT_MS = Number(process.env.ADAPTER_STREAM_TIMEOUT || 120000);
+const RADIO_STREAM_TIMEOUT_MS = Number(process.env.RADIO_STREAM_TIMEOUT_MS || 15000);
 const audioCache = new Map();
 const inflightDownloads = new Map();
+
+const RADIO_STATIONS = {
+  VOV1: {
+    name: 'VOV 1 - Đài Tiếng nói Việt Nam',
+    url: 'https://stream.vovmedia.vn/vov-1',
+    description: 'Kênh thông tin tổng hợp',
+    genre: 'News/Talk',
+    volume: 4.5,
+  },
+  VOV2: {
+    name: 'VOV 2 - Âm thanh Việt Nam',
+    url: 'https://stream.vovmedia.vn/vov-2',
+    description: 'Kênh văn hóa - văn nghệ',
+    genre: 'Culture/Music',
+    volume: 4.0,
+  },
+  VOV3: {
+    name: 'VOV 3 - Tiếng nói Việt Nam',
+    url: 'https://stream.vovmedia.vn/vov-3',
+    description: 'Kênh thông tin - giải trí',
+    genre: 'Entertainment',
+    volume: 4.2,
+  },
+  VOV5: {
+    name: 'VOV 5 - Tiếng nói người Việt',
+    url: 'https://stream.vovmedia.vn/vov5',
+    description: 'Kênh dành cho người Việt ở nước ngoài',
+    genre: 'Overseas Vietnamese',
+    volume: 4.3,
+  },
+  VOVGT: {
+    name: 'VOV Giao thông Hà Nội',
+    url: 'https://stream.vovmedia.vn/vovgt-hn',
+    description: 'Thông tin giao thông Hà Nội',
+    genre: 'Traffic',
+    volume: 5.0,
+  },
+  VOVGT_HCM: {
+    name: 'VOV Giao thông Hồ Chí Minh',
+    url: 'https://stream.vovmedia.vn/vovgt-hcm',
+    description: 'Thông tin giao thông TP.HCM',
+    genre: 'Traffic',
+    volume: 5.2,
+  },
+  VOV_ENGLISH: {
+    name: 'VOV English',
+    url: 'https://stream.vovmedia.vn/vov247',
+    description: 'VOV English Service',
+    genre: 'International',
+    volume: 1.0,
+  },
+  VOV_MEKONG: {
+    name: 'VOV Mê Kông',
+    url: 'https://stream.vovmedia.vn/vovmekong',
+    description: 'Kênh vùng Đồng bằng sông Cửu Long',
+    genre: 'Regional',
+    volume: 4.6,
+  },
+  VOV_MIENTRUNG: {
+    name: 'VOV Miền Trung',
+    url: 'https://stream.vovmedia.vn/vov4mt',
+    description: 'Kênh vùng miền Trung',
+    genre: 'Regional',
+    volume: 4.4,
+  },
+  VOV_TAYBAC: {
+    name: 'VOV Tây Bắc',
+    url: 'https://stream.vovmedia.vn/vov4tb',
+    description: 'Kênh vùng Tây Bắc',
+    genre: 'Regional',
+    volume: 4.7,
+  },
+  VOV_DONGBAC: {
+    name: 'VOV Đông Bắc',
+    url: 'https://stream.vovmedia.vn/vov4db',
+    description: 'Kênh vùng Đông Bắc',
+    genre: 'Regional',
+    volume: 4.1,
+  },
+  VOV_TAYNGUYEN: {
+    name: 'VOV Tây Nguyên',
+    url: 'https://stream.vovmedia.vn/vov4tn',
+    description: 'Kênh vùng Tây Nguyên',
+    genre: 'Regional',
+    volume: 4.8,
+  },
+};
+
+const RADIO_KEYWORD_MAP = [
+  { key: 'VOV_TAYNGUYEN', keywords: ['tay nguyen', 'tây nguyên', 'taynguyen'] },
+  { key: 'VOVGT', keywords: ['giao thong ha noi', 'traffic ha noi', 'vovgt hn'] },
+  { key: 'VOVGT_HCM', keywords: ['giao thong hcm', 'traffic hcm', 'giao thong sai gon'] },
+  { key: 'VOV_MEKONG', keywords: ['mekong'] },
+  { key: 'VOV_MIENTRUNG', keywords: ['mien trung'] },
+  { key: 'VOV_TAYBAC', keywords: ['tay bac'] },
+  { key: 'VOV_DONGBAC', keywords: ['dong bac'] },
+  { key: 'VOV_ENGLISH', keywords: ['english'] },
+];
+
+const NORMALIZE_DIACRITICS_REGEX = /[\u0300-\u036f]/g;
+
+function normalizeText(value = '') {
+  return value
+    .normalize('NFD')
+    .replace(NORMALIZE_DIACRITICS_REGEX, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D')
+    .toLowerCase()
+    .trim();
+}
+
+function resolveRadioStation(input) {
+  if (!input) return null;
+  const raw = String(input).trim();
+  if (!raw) return null;
+
+  const directKey = raw.toUpperCase();
+  if (RADIO_STATIONS[directKey]) {
+    return { key: directKey, station: RADIO_STATIONS[directKey] };
+  }
+
+  const normalizedInput = normalizeText(raw);
+
+  for (const [key, station] of Object.entries(RADIO_STATIONS)) {
+    const normalizedName = normalizeText(station.name);
+    if (normalizedName.includes(normalizedInput) || normalizedInput.includes(normalizedName)) {
+      return { key, station };
+    }
+  }
+
+  if (normalizedInput.includes('vov')) {
+    const numberMatch = normalizedInput.match(/(\d+)/);
+    if (numberMatch) {
+      const numericKey = `VOV${numberMatch[1]}`;
+      if (RADIO_STATIONS[numericKey]) {
+        return { key: numericKey, station: RADIO_STATIONS[numericKey] };
+      }
+    }
+    const phoneticVariants = ['mot', 'moc', 'mot', 'mot', 'mop', 'mot', 'muc'];
+    if (phoneticVariants.some((variant) => normalizedInput.includes(variant))) {
+      return { key: 'VOV1', station: RADIO_STATIONS.VOV1 };
+    }
+  }
+
+  for (const entry of RADIO_KEYWORD_MAP) {
+    if (entry.keywords.some((kw) => normalizedInput.includes(kw))) {
+      return { key: entry.key, station: RADIO_STATIONS[entry.key] };
+    }
+  }
+
+  return null;
+}
+
+function buildRadioPayload(key, station) {
+  if (!key || !station) return null;
+  const payload = {
+    station_key: key,
+    name: station.name,
+    description: station.description,
+    genre: station.genre,
+    volume: station.volume,
+    direct_url: station.url,
+    stream_url: `/radio/live?station=${encodeURIComponent(key)}`,
+  };
+
+  if (ADAPTER_PUBLIC_URL) {
+    payload.stream_url_absolute = `${ADAPTER_PUBLIC_URL}${payload.stream_url}`;
+  }
+
+  return payload;
+}
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -184,7 +356,94 @@ app.get('/health', (_req, res) => {
     ok: true,
     adapter_cache_size: audioCache.size,
     cached_song_ids: Array.from(audioCache.keys()),
+    radio_station_count: Object.keys(RADIO_STATIONS).length,
   });
+});
+
+app.get('/radio/stations', (_req, res) => {
+  const stations = Object.entries(RADIO_STATIONS).map(([key, station]) => ({
+    key,
+    ...buildRadioPayload(key, station),
+  }));
+  res.json({ count: stations.length, stations });
+});
+
+app.get('/radio/play', (req, res) => {
+  try {
+    const { station, q } = req.query;
+    const resolved = resolveRadioStation(station || q);
+    if (!resolved) {
+      return res.status(404).json({
+        error: 'Radio station not found',
+        received: station || q || null,
+      });
+    }
+    const payload = buildRadioPayload(resolved.key, resolved.station);
+    res.json(payload);
+  } catch (e) {
+    console.error('radio/play error', e.message);
+    res.status(500).json({ error: e?.message || 'Internal server error' });
+  }
+});
+
+app.get('/radio/live', async (req, res) => {
+  try {
+    const { station } = req.query;
+    if (!station) {
+      return res.status(400).json({ error: 'Missing station parameter' });
+    }
+    const resolved = resolveRadioStation(station);
+    if (!resolved) {
+      return res.status(404).json({ error: 'Radio station not found', station });
+    }
+    const { key, station: stationMeta } = resolved;
+
+    const headers = {
+      'User-Agent': 'MCP-AI-Radio/1.0',
+      Accept: '*/*',
+    };
+    if (req.headers.range) {
+      headers.Range = req.headers.range;
+    }
+
+    const radioResponse = await axios({
+      method: 'GET',
+      url: stationMeta.url,
+      responseType: 'stream',
+      timeout: RADIO_STREAM_TIMEOUT_MS,
+      headers,
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity,
+      validateStatus: (status) => status >= 200 && status < 400,
+    });
+
+    res.set({
+      'Content-Type': radioResponse.headers['content-type'] || 'audio/aac',
+      'Cache-Control': 'no-cache',
+      'Transfer-Encoding': 'chunked',
+      'X-Radio-Station': key,
+    });
+
+    req.on('close', () => {
+      if (radioResponse?.data?.destroy) {
+        radioResponse.data.destroy();
+      }
+    });
+
+    radioResponse.data.on('error', (err) => {
+      console.error('radio live stream error', err?.message);
+      if (!res.headersSent) {
+        res.status(502).end();
+      } else {
+        res.destroy(err);
+      }
+    });
+
+    radioResponse.data.pipe(res);
+  } catch (e) {
+    console.error('radio/live error', e?.message || e);
+    res.status(502).json({ error: 'Không truy cập được radio stream' });
+  }
 });
 
 // basic demos
