@@ -14,6 +14,13 @@ const STREAM_TIMEOUT_MS = Number(process.env.ADAPTER_STREAM_TIMEOUT || 120000);
 const RADIO_STREAM_TIMEOUT_MS = Number(process.env.RADIO_STREAM_TIMEOUT_MS || 15000);
 const audioCache = new Map();
 const inflightDownloads = new Map();
+const metrics = {
+  totalRequests: 0,
+  perRoute: {},
+  recentRequests: [],
+  recentErrors: [],
+  maxRecent: 100,
+};
 
 const RADIO_STATIONS = {
   VOV1: {
@@ -188,6 +195,39 @@ function buildRadioPayload(key, station) {
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    const route = req.path;
+    metrics.totalRequests += 1;
+    metrics.perRoute[route] = (metrics.perRoute[route] || 0) + 1;
+    metrics.recentRequests.unshift({
+      method: req.method,
+      route,
+      status: res.statusCode,
+      duration,
+      at: new Date().toISOString(),
+    });
+    if (metrics.recentRequests.length > metrics.maxRecent) {
+      metrics.recentRequests.pop();
+    }
+    if (res.statusCode >= 500) {
+      metrics.recentErrors.unshift({
+        route,
+        method: req.method,
+        status: res.statusCode,
+        message: 'Internal error response',
+        at: new Date().toISOString(),
+      });
+      if (metrics.recentErrors.length > metrics.maxRecent) {
+        metrics.recentErrors.pop();
+      }
+    }
+  });
+  next();
+});
 
 function trimCache() {
   while (audioCache.size > ADAPTER_CACHE_LIMIT && audioCache.size > 0) {
@@ -384,6 +424,20 @@ app.get('/radio/play', (req, res) => {
     console.error('radio/play error', e.message);
     res.status(500).json({ error: e?.message || 'Internal server error' });
   }
+});
+
+app.get('/metrics/access', (_req, res) => {
+  res.json({
+    totalRequests: metrics.totalRequests,
+    perRoute: metrics.perRoute,
+    recentRequests: metrics.recentRequests,
+  });
+});
+
+app.get('/metrics/errors', (_req, res) => {
+  res.json({
+    recentErrors: metrics.recentErrors,
+  });
 });
 
 app.get('/radio/live', async (req, res) => {

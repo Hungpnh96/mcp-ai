@@ -10,52 +10,34 @@
   <header>
     <div class="container">
       <nav>
-        <div class="logo">MCP-AI · control panel</div>
-        <button class="secondary" id="btnOpenRadio">Radio</button>
+        <div class="logo">MCP-AI · command console</div>
+        <div class="nav-actions">
+          <span class="deploy-pill"><span></span>Port 8002 · Node 18</span>
+          <button class="secondary" id="btnOpenRadio">Radio</button>
+          <button class="secondary" id="btnOpenLogs">Logs</button>
+        </div>
       </nav>
     </div>
   </header>
 
   <main class="container">
-    <section>
-      <h1>MCP-AI Control Center</h1>
-      <p class="lead">Tổng hợp nhanh các dịch vụ đang chạy trong MCP-AI stack (âm nhạc, radio VOV, tin tức, adapter). ESP32 và dashboard đều dùng chung endpoint.</p>
+    <section class="hero">
+      <span class="hero-pill">Realtime orchestration · MCP stack</span>
+      <h1>Giám sát & điều khiển nhạc, radio, ESP32 trên một bảng điều khiển duy nhất.</h1>
+      <p class="lead">Ứng dụng monolithic chạy port 8002 hợp nhất mp3-api, adapter và radio proxy. Bảng điều khiển này phản ánh đúng hành vi ESP32 để bạn kiểm thử và vận hành nhanh.</p>
       <div class="cta-row">
         <button class="primary" id="refreshHealth">Ping Health</button>
         <button class="secondary" id="btnRadioStations">Danh sách Radio</button>
+        <button class="secondary" id="btnOpenLogsPanel">Mở tab Logs</button>
+      </div>
+      <div class="hero-meta">
+        <span>Deploy: Docker · Node 18</span>
+        <span>Adapter Cache chia sẻ</span>
+        <span>ESP32 Auth headers được forward</span>
       </div>
     </section>
 
-    <section class="module-section" data-module="radio">
-      <div class="card">
-        <div class="group-title">Radio VOV · Proxy AAC</div>
-        <div class="row">
-          <div>
-            <label for="radioQuery">Tên kênh hoặc từ khóa</label>
-            <input id="radioQuery" type="text" placeholder="vd: VOV giao thông hoặc VOV1" />
-          </div>
-          <div class="row-actions">
-            <button class="primary" id="btnRadioSearch">Gọi /radio/play</button>
-            <button class="secondary" id="btnRadioStationsInline">Danh sách</button>
-          </div>
-        </div>
-        <pre class="curl" id="curlRadioPlay">curl "http://localhost:8002/radio/play?station=VOV1"</pre>
-      </div>
-      <div class="card">
-        <div class="row" style="gap:12px; flex-wrap:wrap; align-items:flex-end;">
-          <div style="flex:1 1 260px;">
-            <label for="radioStationSelect">Chọn kênh</label>
-            <select id="radioStationSelect" style="width:100%; padding:12px 14px; border-radius:12px; background:#030712; border:1px solid #374151; color:#e5e7eb;"></select>
-          </div>
-          <button class="secondary" id="btnRadioPlaySelected">Phát</button>
-        </div>
-        <audio id="radioPlayer" class="hidden" controls></audio>
-      </div>
-      <div class="card">
-        <label>Kết quả radio</label>
-        <pre id="radioOut">(chưa có dữ liệu)</pre>
-      </div>
-    </section>
+  
 
     <section style="margin-top:40px;" class="grid grid-3">
       <div class="card">
@@ -64,15 +46,15 @@
           <span></span>
           Chưa kiểm tra
         </div>
-        <p id="healthMeta">Nhấn “Kiểm tra Health” để gọi <code>/health</code>.</p>
+        <p id="healthMeta">Nhấn “Ping Health” để đồng bộ số liệu cache + radio.</p>
       </div>
 
       <div class="card">
         <h3>Thông tin triển khai</h3>
         <ul class="list">
           <li><strong>Env:</strong> Local Docker / VPS</li>
-          <li><strong>mp3-api:</strong> Node 18 · port <code>8002</code></li>
-          <li><strong>Radio:</strong> Proxy AAC từ VOV</li>
+          <li><strong>Service:</strong> mp3-api + adapter hợp nhất</li>
+          <li><strong>Radio:</strong> Proxy AAC VOV · 24/7</li>
         </ul>
       </div>
 
@@ -95,9 +77,10 @@
       <button data-target="news">News · Tin tức</button>
       <button data-target="weather">Weather · Thời tiết</button>
       <button data-target="calendar">Calendar · Lịch</button>
+      <button data-target="logs">Logs · Giám sát</button>
     </div>
 
-        <section class="module-section active" data-module="music">
+    <section class="module-section active" data-module="music">
       <div class="card">
         <div class="group-title">Âm nhạc · Tìm kiếm bài hát</div>
         <div class="row">
@@ -151,7 +134,39 @@
         <pre id="out">(chưa có dữ liệu)</pre>
       </div>
     </section>
-<section class="module-section" data-module="news">
+
+    <section class="module-section" data-module="radio">
+      <div class="card">
+        <div class="group-title">Radio VOV · Proxy AAC</div>
+        <div class="row">
+          <div>
+            <label for="radioQuery">Tên kênh hoặc từ khóa</label>
+            <input id="radioQuery" type="text" placeholder="vd: VOV giao thông hoặc VOV1" />
+          </div>
+          <div class="row-actions">
+            <button class="primary" id="btnRadioSearch">Gọi /radio/play</button>
+            <button class="secondary" id="btnRadioStationsInline">Danh sách</button>
+          </div>
+        </div>
+        <pre class="curl" id="curlRadioPlay">curl "http://localhost:8002/radio/play?station=VOV1"</pre>
+      </div>
+      <div class="card">
+        <div class="row" style="gap:12px; flex-wrap:wrap; align-items:flex-end;">
+          <div style="flex:1 1 260px;">
+            <label for="radioStationSelect">Chọn kênh</label>
+            <select id="radioStationSelect" style="width:100%; padding:12px 14px; border-radius:12px; background:#030712; border:1px solid #374151; color:#e5e7eb;"></select>
+          </div>
+          <button class="secondary" id="btnRadioPlaySelected">Phát</button>
+        </div>
+        <audio id="radioPlayer" class="hidden" controls></audio>
+      </div>
+      <div class="card">
+        <label>Kết quả radio</label>
+        <pre id="radioOut">(chưa có dữ liệu)</pre>
+      </div>
+    </section>
+
+    <section class="module-section" data-module="news">
       <div class="card">
         <h3>Bảng tin VNExpress</h3>
         <p>Xem nhanh 10 tin mới nhất và đọc nội dung ngay tại đây.</p>
@@ -201,6 +216,31 @@
           <button class="secondary" id="btnLunar">Lấy lịch âm</button>
         </div>
         <div class="lunar-card" id="lunarInfo" style="margin-top:16px;">Chưa tải dữ liệu.</div>
+      </div>
+    </section>
+
+    <section class="module-section" data-module="logs">
+      <div class="card">
+        <div class="group-title">Số liệu truy cập</div>
+        <div class="cta-row" style="margin:8px 0 16px;">
+          <button class="primary" id="btnRefreshLogs">Làm mới số liệu</button>
+        </div>
+        <p>Tổng request: <strong id="metricTotalReq">—</strong></p>
+        <div class="list" id="metricPerRoute">
+          <li>Chưa có dữ liệu.</li>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="group-title">Log truy cập gần đây</div>
+        <small>Hiển thị tối đa 10 yêu cầu mới nhất.</small>
+        <pre id="metricRecentReq" style="margin-top:12px;">(chưa có dữ liệu)</pre>
+      </div>
+
+      <div class="card">
+        <div class="group-title">Lỗi gần đây</div>
+        <small>Trích từ các phản hồi mã ≥ 500.</small>
+        <pre id="metricRecentErrors" style="margin-top:12px;">(chưa có dữ liệu)</pre>
       </div>
     </section>
   </main>
