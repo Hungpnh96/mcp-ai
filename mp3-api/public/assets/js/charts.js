@@ -3,7 +3,8 @@ const chartLatencyCanvas = document.getElementById('chartRecentLatency');
 const routeCard = chartRouteCanvas?.closest('.chart-card');
 const latencyCard = chartLatencyCanvas?.closest('.chart-card');
 const btnRefreshCharts = document.getElementById('btnRefreshCharts');
-const logsTabBtn = document.querySelector('.module-nav button[data-target="logs"]');
+
+let latestAccessMetrics = null;
 
 let routeChartInstance = null;
 let latencyChartInstance = null;
@@ -41,12 +42,10 @@ function setEmptyState(cardEl, canvasEl, message) {
   }
 }
 
-async function renderCharts() {
+function renderChartsFromData(access = {}) {
   if (!window.Chart || !chartRouteCanvas || !chartLatencyCanvas) return;
-  try {
-    btnRefreshCharts && (btnRefreshCharts.disabled = true);
-    destroyCharts();
-    const { perRoute = {}, recentRequests = [] } = await fetchAccessMetrics();
+  const { perRoute = {}, recentRequests = [] } = access;
+  destroyCharts();
 
     const palette = [
       '#3b82f6',
@@ -81,7 +80,7 @@ async function renderCharts() {
           plugins: {
             legend: {
               position: 'bottom',
-              labels: { color: '#cbd5f5' },
+              labels: { color: getLegendColor() },
             },
           },
         },
@@ -109,12 +108,12 @@ async function renderCharts() {
         options: {
           scales: {
             x: {
-              ticks: { color: '#94a3b8', maxRotation: 45, minRotation: 45 },
+              ticks: { color: getAxisColor(), maxRotation: 45, minRotation: 45 },
               grid: { display: false },
             },
             y: {
-              ticks: { color: '#94a3b8' },
-              grid: { color: 'rgba(148, 163, 184, 0.15)' },
+              ticks: { color: getAxisColor() },
+              grid: { color: getGridColor() },
             },
           },
           plugins: {
@@ -123,6 +122,29 @@ async function renderCharts() {
         },
       });
     }
+}
+
+function getLegendColor() {
+  return document.documentElement.getAttribute('data-theme') === 'light' ? '#0f172a' : '#cbd5f5';
+}
+
+function getAxisColor() {
+  return document.documentElement.getAttribute('data-theme') === 'light' ? '#334155' : '#94a3b8';
+}
+
+function getGridColor() {
+  const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+  return isLight ? 'rgba(51, 65, 85, 0.15)' : 'rgba(148, 163, 184, 0.15)';
+}
+
+async function renderCharts(forceFetch = false) {
+  if (!window.Chart || !chartRouteCanvas || !chartLatencyCanvas) return;
+  btnRefreshCharts && (btnRefreshCharts.disabled = true);
+  try {
+    if (forceFetch || !latestAccessMetrics) {
+      latestAccessMetrics = await fetchAccessMetrics();
+    }
+    renderChartsFromData(latestAccessMetrics);
   } catch (err) {
     console.error('renderCharts error', err);
     if (routeCard) {
@@ -136,14 +158,18 @@ async function renderCharts() {
   }
 }
 
-btnRefreshCharts?.addEventListener('click', renderCharts);
-logsTabBtn?.addEventListener('click', () => {
-  if (!routeChartInstance || !latencyChartInstance) {
-    renderCharts();
+btnRefreshCharts?.addEventListener('click', () => renderCharts(true));
+
+document.addEventListener('metrics:updated', (evt) => {
+  const detail = evt.detail || {};
+  const access = detail.access ?? detail;
+  if (access) {
+    latestAccessMetrics = access;
+    renderChartsFromData(access);
   }
 });
 
 // Preload data shortly after page ready
 if (chartRouteCanvas && chartLatencyCanvas) {
-  setTimeout(renderCharts, 1500);
+  setTimeout(() => renderCharts(true), 1000);
 }

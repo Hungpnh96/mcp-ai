@@ -22,6 +22,18 @@ const metrics = {
   maxRecent: 100,
 };
 
+const FAVICON_SVG = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1" />
+      <stop offset="100%" stop-color="#f97316" />
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#grad)" />
+  <text x="50%" y="54%" font-family="'Segoe UI', 'Inter', sans-serif" font-size="28" font-weight="700" fill="#ffffff" text-anchor="middle">AI</text>
+</svg>`;
+
 const RADIO_STATIONS = {
   VOV1: {
     name: 'VOV 1 - Đài Tiếng nói Việt Nam',
@@ -227,6 +239,10 @@ app.use((req, res, next) => {
     }
   });
   next();
+});
+
+app.get('/favicon.ico', (_req, res) => {
+  res.type('image/svg+xml').send(FAVICON_SVG);
 });
 
 function trimCache() {

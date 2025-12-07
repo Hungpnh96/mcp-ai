@@ -32,7 +32,7 @@ export function initShell({ currentPage }) {
   });
 }
 
-export async function fetchJson(path, params) {
+export async function fetchJson(path, params, options = {}) {
   const url = new URL(path, window.location.origin);
   if (params) {
     Object.entries(params).forEach(([key, value]) => {
@@ -41,7 +41,19 @@ export async function fetchJson(path, params) {
       }
     });
   }
-  const res = await fetch(url);
+  const defaultHeaders = {
+    'cache-control': 'no-cache',
+    pragma: 'no-cache',
+  };
+  const fetchOptions = {
+    cache: 'no-store',
+    ...options,
+    headers: {
+      ...defaultHeaders,
+      ...(options.headers || {}),
+    },
+  };
+  const res = await fetch(url, fetchOptions);
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`HTTP ${res.status}: ${text}`);
