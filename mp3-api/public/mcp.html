@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MCP-AI · MCP ESP32</title>
+  <link rel="stylesheet" href="/assets/css/dashboard.css" />
+</head>
+<body>
+  <header>
+    <div class="container">
+      <nav>
+        <div class="logo">MCP-AI · command console</div>
+        <div class="nav-links">
+          <span class="deploy-pill"><span></span>Port 8002 · Node 18</span>
+          <button id="themeToggle">Dark mode</button>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="menu-group">
+          <p>Dashboard</p>
+          <a href="/index.html" data-nav="dashboard">Tổng quan</a>
+        </div>
+        <div class="menu-group">
+          <p>Services</p>
+          <a href="/music.html" data-nav="music">Âm nhạc</a>
+          <a href="/radio.html" data-nav="radio">Radio VOV</a>
+        </div>
+        <div class="menu-group">
+          <p>Thiết bị</p>
+          <a href="/mcp.html" data-nav="mcp" class="active">MCP ESP32</a>
+        </div>
+        <div class="menu-group">
+          <p>Thông tin & Logs</p>
+          <a href="/news.html" data-nav="news">Tin tức</a>
+          <a href="/weather.html" data-nav="weather">Thời tiết</a>
+          <a href="/calendar.html" data-nav="calendar">Lịch âm</a>
+          <a href="/index.html#metricsSection" data-nav="logs">Logs & Metrics</a>
+        </div>
+      </aside>
+
+      <div class="content">
+        <section class="hero">
+          <span class="hero-pill">🏠 ESP32 Smart Home</span>
+          <h1>Điều khiển thiết bị thông minh ESP32</h1>
+          <p class="lead">Kết nối qua HTTP REST API để bật/tắt quạt và đèn trong nhà. Trạng thái cập nhật tự động mỗi 2 giây.</p>
+          <div class="cta-row">
+            <a class="secondary" href="/index.html">Quay lại Dashboard</a>
+          </div>
+        </section>
+
+        <!-- Connection Info -->
+        <div class="card">
+          <div class="group-title">Thông tin kết nối</div>
+          <div class="status-grid">
+            <div class="status-item">
+              <span class="status-label">Trạng thái:</span>
+              <span id="connectionStatus" class="status-value">Đang kết nối...</span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">IP Address:</span>
+              <span id="deviceIP" class="status-value">—</span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">WiFi Signal:</span>
+              <span id="wifiSignal" class="status-value">—</span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">Last Update:</span>
+              <span id="lastUpdate" class="status-value">—</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Device Controls -->
+        <div class="card">
+          <div class="group-title">🌀 Quạt thông gió</div>
+          <div class="device-control">
+            <div class="device-status">
+              <span class="device-icon">🌀</span>
+              <span id="status-fan" class="device-state-text">Đang tải...</span>
+            </div>
+            <div class="device-actions">
+              <button class="btn-device btn-on" data-device="fan" data-state="true">✅ Bật</button>
+              <button class="btn-device btn-off" data-device="fan" data-state="false">⭕ Tắt</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="group-title">💡 Đèn phòng khách</div>
+          <div class="device-control">
+            <div class="device-status">
+              <span class="device-icon">💡</span>
+              <span id="status-light1" class="device-state-text">Đang tải...</span>
+            </div>
+            <div class="device-actions">
+              <button class="btn-device btn-on" data-device="light1" data-state="true">✅ Bật</button>
+              <button class="btn-device btn-off" data-device="light1" data-state="false">⭕ Tắt</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="group-title">💡 Đèn phòng ngủ</div>
+          <div class="device-control">
+            <div class="device-status">
+              <span class="device-icon">💡</span>
+              <span id="status-light2" class="device-state-text">Đang tải...</span>
+            </div>
+            <div class="device-actions">
+              <button class="btn-device btn-on" data-device="light2" data-state="true">✅ Bật</button>
+              <button class="btn-device btn-off" data-device="light2" data-state="false">⭕ Tắt</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="group-title">💡 Đèn phòng bếp</div>
+          <div class="device-control">
+            <div class="device-status">
+              <span class="device-icon">💡</span>
+              <span id="status-light3" class="device-state-text">Đang tải...</span>
+            </div>
+            <div class="device-actions">
+              <button class="btn-device btn-on" data-device="light3" data-state="true">✅ Bật</button>
+              <button class="btn-device btn-off" data-device="light3" data-state="false">⭕ Tắt</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- All Devices Control -->
+        <div class="card">
+          <div class="group-title">🏠 Điều khiển tất cả</div>
+          <div class="device-control">
+            <div class="device-actions" style="justify-content: center;">
+              <button class="btn-device btn-on" data-device="all" data-state="true" style="flex: 1; max-width: 200px;">🔆 Bật tất cả</button>
+              <button class="btn-device btn-off" data-device="all" data-state="false" style="flex: 1; max-width: 200px;">🌙 Tắt tất cả</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Configuration -->
+        <div class="card">
+          <div class="group-title">⚙️ Cấu hình ESP32</div>
+          <div class="config-form">
+            <div>
+              <label for="esp32IP">ESP32 IP Address</label>
+              <input id="esp32IP" type="text" placeholder="192.168.1.100" value="192.168.1.100" />
+              <small>Nhập địa chỉ IP của ESP32 trong mạng local</small>
+            </div>
+            <div class="row-actions">
+              <button class="primary" id="btnSaveConfig">💾 Lưu cấu hình</button>
+              <button class="secondary" id="btnRefresh">🔄 Làm mới</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Activity Log -->
+        <div class="card">
+          <div class="group-title">📋 Nhật ký hoạt động</div>
+          <small>Hiển thị 50 hoạt động gần nhất</small>
+          <pre id="activityLog" style="margin-top:12px; min-height:200px; max-height: 400px; overflow-y: auto;">(chưa có hoạt động)</pre>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    &copy; 2025 MCP-AI Control Center &middot; Internal use only
+  </footer>
+  <script type="module">
+    import { initShell } from '/assets/js/common.js';
+    import { initMcpConsole } from '/assets/js/mcp.js';
+    initShell({ currentPage: 'mcp' });
+    initMcpConsole();
+  </script>
+</body>
+</html>
