@@ -36,7 +36,7 @@
           <a href="/news.html" data-nav="news">Tin tức</a>
           <a href="/weather.html" data-nav="weather">Thời tiết</a>
           <a href="/calendar.html" data-nav="calendar">Lịch âm</a>
-          <a href="/logs.html" data-nav="logs">Logs & Metrics</a>
+          <a href="/index.html#metricsSection" data-nav="logs">Logs & Metrics</a>
         </div>
       </aside>
 
@@ -48,7 +48,7 @@
           <div class="cta-row">
             <button class="primary" id="refreshHealth">Ping Health</button>
             <a class="secondary" href="/radio.html">Mở module Radio</a>
-            <a class="secondary" href="/logs.html">Xem Logs</a>
+            <a class="secondary" href="#metricsSection">Xem Logs</a>
           </div>
           <div class="hero-meta">
             <span>Deploy: Docker · Node 18</span>
@@ -102,6 +102,31 @@
               <canvas id="chartRecentLatency" height="240"></canvas>
             </div>
           </div>
+        </div>
+
+        <section id="metricsSection" class="grid grid-2" style="margin-top:24px;">
+          <div class="card">
+            <div class="group-title">Số liệu truy cập</div>
+            <p>Tổng request: <strong id="metricTotalReq">—</strong></p>
+            <div class="cta-row" style="margin:12px 0;">
+              <button class="secondary" id="btnRefreshLogs">Làm mới số liệu</button>
+            </div>
+            <ul class="list" id="metricPerRoute">
+              <li>Chưa có dữ liệu.</li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <div class="group-title">Log truy cập gần đây</div>
+            <small>Hiển thị tối đa 10 yêu cầu mới nhất.</small>
+            <pre id="metricRecentReq" style="margin-top:12px;">(chưa có dữ liệu)</pre>
+          </div>
+        </section>
+
+        <div class="card" style="margin-top:20px;">
+          <div class="group-title">Lỗi gần đây</div>
+          <small>Trích từ các phản hồi mã ≥ 500.</small>
+          <pre id="metricRecentErrors" style="margin-top:12px;">(không có lỗi gần đây)</pre>
         </div>
       </div>
     </div>

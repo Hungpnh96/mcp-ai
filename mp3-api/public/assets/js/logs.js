@@ -1,14 +1,51 @@
-import { initShell, fetchJson } from './common.js';
+import { fetchJson } from './common.js';
 
-initShell({ currentPage: 'logs' });
+let metricTotalReq;
+let metricPerRoute;
+let metricRecentReq;
+let metricRecentErrors;
+let btnRefreshLogs;
+let lastAccessData = null;
+let lastErrorData = null;
 
-const metricTotalReq = document.getElementById('metricTotalReq');
-const metricPerRoute = document.getElementById('metricPerRoute');
-const metricRecentReq = document.getElementById('metricRecentReq');
-const metricRecentErrors = document.getElementById('metricRecentErrors');
-const btnRefreshLogs = document.getElementById('btnRefreshLogs');
+function renderPerRoute(perRoute = {}) {
+  if (!metricPerRoute) return;
+  const entries = Object.entries(perRoute);
+  metricPerRoute.innerHTML = entries.length
+    ? entries.map(([route, count]) => `<li><strong>${route}</strong>: ${count}</li>`).join('')
+    : '<li>Chưa có dữ liệu.</li>';
+}
 
-async function refreshMetrics() {
+function renderRecentRequests(recent = []) {
+  if (!metricRecentReq) return;
+  metricRecentReq.textContent = recent.length
+    ? recent
+        .slice(0, 10)
+        .map((req) => `${req.at} · ${req.method} ${req.route} -> ${req.status} (${req.duration}ms)`)
+        .join('\n')
+    : '(chưa có dữ liệu)';
+}
+
+function renderRecentErrors(recentErrors = []) {
+  if (!metricRecentErrors) return;
+  metricRecentErrors.textContent = recentErrors.length
+    ? recentErrors
+        .slice(0, 10)
+        .map((err) => `${err.at} · ${err.method} ${err.route} -> ${err.status} · ${err.message || ''}`)
+        .join('\n')
+    : '(không có lỗi gần đây)';
+}
+
+function updateMetrics(accessData = {}, errorData = {}) {
+  lastAccessData = accessData;
+  lastErrorData = errorData;
+  if (metricTotalReq) metricTotalReq.textContent = accessData?.totalRequests ?? '0';
+  renderPerRoute(accessData?.perRoute);
+  renderRecentRequests(accessData?.recentRequests);
+  renderRecentErrors(errorData?.recentErrors);
+}
+
+async function fetchAndRenderMetrics() {
   try {
     if (metricRecentReq) metricRecentReq.textContent = 'Đang tải...';
     if (metricRecentErrors) metricRecentErrors.textContent = 'Đang tải...';
@@ -16,36 +53,7 @@ async function refreshMetrics() {
       fetchJson('/metrics/access'),
       fetchJson('/metrics/errors'),
     ]);
-
-    if (metricTotalReq) metricTotalReq.textContent = access?.totalRequests ?? '0';
-
-    if (metricPerRoute) {
-      const perRoute = access?.perRoute || {};
-      const entries = Object.entries(perRoute);
-      metricPerRoute.innerHTML = entries.length
-        ? entries
-            .map(([route, count]) => `<li><strong>${route}</strong>: ${count}</li>`)
-            .join('')
-        : '<li>Chưa có dữ liệu.</li>';
-    }
-
-    if (metricRecentReq) {
-      const recent = (access?.recentRequests || []).slice(0, 10);
-      metricRecentReq.textContent = recent.length
-        ? recent
-            .map((req) => `${req.at} · ${req.method} ${req.route} -> ${req.status} (${req.duration}ms)`)
-            .join('\n')
-        : '(chưa có dữ liệu)';
-    }
-
-    if (metricRecentErrors) {
-      const recentErr = errors?.recentErrors || [];
-      metricRecentErrors.textContent = recentErr.length
-        ? recentErr
-            .map((err) => `${err.at} · ${err.method} ${err.route} -> ${err.status} · ${err.message || ''}`)
-            .join('\n')
-        : '(không có lỗi gần đây)';
-    }
+    updateMetrics(access, errors);
   } catch (err) {
     const msg = `Không tải được metrics: ${String(err)}`;
     if (metricRecentReq) metricRecentReq.textContent = msg;
@@ -53,6 +61,31 @@ async function refreshMetrics() {
   }
 }
 
-btnRefreshLogs?.addEventListener('click', refreshMetrics);
+export function initMetricsPanel({ autoLoad = true } = {}) {
+  metricTotalReq = document.getElementById('metricTotalReq');
+  metricPerRoute = document.getElementById('metricPerRoute');
+  metricRecentReq = document.getElementById('metricRecentReq');
+  metricRecentErrors = document.getElementById('metricRecentErrors');
+  btnRefreshLogs = document.getElementById('btnRefreshLogs');
 
-refreshMetrics();
+  if (!metricTotalReq || !metricPerRoute || !metricRecentReq || !metricRecentErrors) {
+    return;
+  }
+
+  btnRefreshLogs?.addEventListener('click', fetchAndRenderMetrics);
+
+  document.addEventListener('metrics:updated', (evt) => {
+    const detail = evt.detail || {};
+    const access = detail.access ?? detail;
+    const errors = detail.errors;
+    if (access || errors) {
+      updateMetrics(access, errors);
+    }
+  });
+
+  if (autoLoad) {
+    fetchAndRenderMetrics();
+  } else if (lastAccessData || lastErrorData) {
+    updateMetrics(lastAccessData, lastErrorData);
+  }
+}
