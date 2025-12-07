@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MCP-AI · Radio VOV</title>
+  <link rel="stylesheet" href="/assets/css/dashboard.css" />
+</head>
+<body>
+  <header>
+    <div class="container">
+      <nav>
+        <div class="logo">MCP-AI · command console</div>
+        <div class="nav-links">
+          <span class="deploy-pill"><span></span>Port 8002 · Node 18</span>
+          <button id="themeToggle">Dark mode</button>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="menu-group">
+          <p>Dashboard</p>
+          <a href="/index.html" data-nav="dashboard">Tổng quan</a>
+        </div>
+        <div class="menu-group">
+          <p>Services</p>
+          <a href="/music.html" data-nav="music">Âm nhạc</a>
+          <a href="/radio.html" data-nav="radio" class="active">Radio VOV</a>
+        </div>
+        <div class="menu-group">
+          <p>Thông tin & Logs</p>
+          <a href="/news.html" data-nav="news">Tin tức</a>
+          <a href="/weather.html" data-nav="weather">Thời tiết</a>
+          <a href="/calendar.html" data-nav="calendar">Lịch âm</a>
+          <a href="/logs.html" data-nav="logs">Logs & Metrics</a>
+        </div>
+      </aside>
+
+      <div class="content">
+        <section class="hero">
+          <span class="hero-pill">Radio · VOV proxy</span>
+          <h1>Phát các kênh VOV thông qua `/radio/play` và `/radio/live`.</h1>
+          <p class="lead">Kết nối trực tiếp tới ESP32 và dashboard, giữ nguyên response adapter (station_key, stream_url).</p>
+          <div class="cta-row">
+            <a class="secondary" href="/music.html">Chuyển sang Âm nhạc</a>
+            <a class="secondary" href="/index.html">Quay lại Dashboard</a>
+          </div>
+        </section>
+
+        <div class="card">
+          <div class="group-title">Radio VOV · Tìm kiếm kênh</div>
+          <div class="row">
+            <div>
+              <label for="radioQuery">Tên kênh hoặc từ khóa</label>
+              <input id="radioQuery" type="text" placeholder="vd: VOV giao thông hoặc VOV1" />
+            </div>
+            <div class="row-actions">
+              <button class="primary" id="btnRadioSearch">Gọi /radio/play</button>
+              <button class="secondary" id="btnRadioStationsInline">Danh sách</button>
+            </div>
+          </div>
+          <pre class="curl" id="curlRadioPlay">curl "http://localhost:8002/radio/play?station=VOV1"</pre>
+        </div>
+
+        <div class="card">
+          <div class="row" style="gap:12px; flex-wrap:wrap; align-items:flex-end;">
+            <div style="flex:1 1 260px;">
+              <label for="radioStationSelect">Chọn kênh sẵn có</label>
+              <select id="radioStationSelect" style="width:100%; padding:12px 14px; border-radius:12px; background:#030712; border:1px solid #374151; color:#e5e7eb;"></select>
+            </div>
+            <button class="secondary" id="btnRadioPlaySelected">Phát</button>
+          </div>
+          <audio id="radioPlayer" class="hidden" controls></audio>
+        </div>
+
+        <div class="card">
+          <h3>Kết quả trả về</h3>
+          <pre id="radioOut">(chưa có dữ liệu)</pre>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    &copy; 2025 MCP-AI Control Center &middot; Internal use only
+  </footer>
+  <script type="module">
+    import { initShell } from '/assets/js/common.js';
+    import '/assets/js/radio.js';
+    initShell({ currentPage: 'radio' });
+  </script>
+</body>
+</html>
