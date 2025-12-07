@@ -62,7 +62,8 @@ async function loadLatestNews() {
   newsDetail.style.display = 'none';
   try {
     const data = await fetchJson('/api/news/latest');
-    renderNews(data?.items?.slice(0, 10));
+    // Chỉ hiển thị top 5 bản tin mới nhất
+    renderNews(data?.items?.slice(0, 5));
   } catch (err) {
     if (newsLatestList) newsLatestList.innerHTML = `<li>${String(err)}</li>`;
   }
