@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MCP-AI · Tin tức</title>
+  <link rel="stylesheet" href="/assets/css/dashboard.css" />
+</head>
+<body>
+  <header>
+    <div class="container">
+      <nav>
+        <div class="logo">MCP-AI · command console</div>
+        <div class="nav-links">
+          <span class="deploy-pill"><span></span>Port 8002 · Node 18</span>
+          <button id="themeToggle">Dark mode</button>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="menu-group">
+          <p>Dashboard</p>
+          <a href="/index.html" data-nav="dashboard">Tổng quan</a>
+        </div>
+        <div class="menu-group">
+          <p>Services</p>
+          <a href="/music.html" data-nav="music">Âm nhạc</a>
+          <a href="/radio.html" data-nav="radio">Radio VOV</a>
+          <a href="/youtube.html" data-nav="youtube">YouTube</a>
+        </div>
+        <div class="menu-group">
+          <p>Thiết bị</p>
+          <a href="/mcp.html" data-nav="mcp">MCP ESP32</a>
+        </div>
+        <div class="menu-group">
+          <p>Thông tin & Logs</p>
+          <a href="/news.html" data-nav="news" class="active">Tin tức</a>
+          <a href="/weather.html" data-nav="weather">Thời tiết</a>
+          <a href="/calendar.html" data-nav="calendar">Lịch âm</a>
+          <a href="/logs.html" data-nav="logs">Logs & Metrics</a>
+        </div>
+      </aside>
+
+      <div class="content">
+        <section class="hero">
+          <span class="hero-pill">VNExpress · RSS + Reader</span>
+          <h1>Bảng tin VNExpress dành cho MCP-AI.</h1>
+          <p class="lead">Tải 10 tin mới nhất từ RSS chính thức và đọc nội dung rút gọn ngay tại giao diện.</p>
+          <div class="cta-row">
+            <button class="primary" id="btnNewsLatest">Lấy tin mới nhất</button>
+            <a class="secondary" href="/index.html">Quay lại Dashboard</a>
+          </div>
+        </section>
+
+        <div class="card">
+          <h3>Bảng tin VNExpress</h3>
+          <ul class="news-list" id="newsLatestList" style="margin-top:18px;">
+            <li>Chưa tải dữ liệu.</li>
+          </ul>
+        </div>
+
+        <div class="card news-detail" id="newsDetail" style="display:none;">
+          <h4 id="newsDetailTitle"></h4>
+          <p id="newsDetailLead"></p>
+          <div id="newsDetailBody" style="display:flex; flex-direction:column; gap:8px; margin-top:12px;"></div>
+          <a id="newsDetailLink" href="#" target="_blank" rel="noreferrer noopener" style="margin-top:10px; color:#38bdf8;">Đọc bài đầy đủ »</a>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    &copy; 2025 MCP-AI Control Center &middot; Internal use only
+  </footer>
+  <script type="module">
+    import { initShell } from '/assets/js/common.js';
+    import '/assets/js/news.js';
+    initShell({ currentPage: 'news' });
+  </script>
+</body>
+</html>

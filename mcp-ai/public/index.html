@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MCP-AI Control Center</title>
+  <link rel="stylesheet" href="/assets/css/dashboard.css" />
+</head>
+<body>
+  <header>
+    <div class="container">
+      <nav>
+        <div class="logo">MCP-AI · command console</div>
+        <div class="nav-links">
+          <span class="deploy-pill"><span></span>Port 8002 · Node 18</span>
+          <button id="themeToggle">Dark mode</button>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="menu-group">
+          <p>Dashboard</p>
+          <a href="/index.html" data-nav="dashboard" class="active">Tổng quan</a>
+        </div>
+        <div class="menu-group">
+          <p>Services</p>
+          <a href="/music.html" data-nav="music">Âm nhạc</a>
+          <a href="/radio.html" data-nav="radio">Radio VOV</a>
+          <a href="/youtube.html" data-nav="youtube">YouTube</a>
+        </div>
+        <div class="menu-group">
+          <p>Thiết bị</p>
+          <a href="/mcp.html" data-nav="mcp">MCP ESP32</a>
+        </div>
+        <div class="menu-group">
+          <p>Thông tin & Logs</p>
+          <a href="/news.html" data-nav="news">Tin tức</a>
+          <a href="/weather.html" data-nav="weather">Thời tiết</a>
+          <a href="/calendar.html" data-nav="calendar">Lịch âm</a>
+          <a href="/index.html#metricsSection" data-nav="logs">Logs & Metrics</a>
+        </div>
+      </aside>
+
+      <div class="content">
+        <section class="hero">
+          <span class="hero-pill">Realtime orchestration · MCP stack</span>
+          <h1>Giám sát & điều khiển nhạc, radio, ESP32 trên một bảng điều khiển duy nhất.</h1>
+          <p class="lead">Ứng dụng monolithic chạy port 8002 hợp nhất mp3-api, adapter và radio proxy. Bảng điều khiển này phản ánh đúng hành vi ESP32 để bạn kiểm thử và vận hành nhanh.</p>
+          <div class="cta-row">
+            <button class="primary" id="refreshHealth">Ping Health</button>
+            <a class="secondary" href="/radio.html">Mở module Radio</a>
+            <a class="secondary" href="#metricsSection">Xem Logs</a>
+          </div>
+          <div class="hero-meta">
+            <span>Deploy: Docker · Node 18</span>
+            <span>Adapter Cache chia sẻ</span>
+            <span>ESP32 Auth headers được forward</span>
+          </div>
+        </section>
+
+
+        <section class="grid grid-3" style="margin-top:40px;">
+          <div class="card">
+            <h3>Trạng thái server</h3>
+            <div id="healthStatus" class="status-pill fail" style="margin:12px 0 16px;">
+              <span></span>
+              Chưa kiểm tra
+            </div>
+            <p id="healthMeta">Nhấn “Ping Health” để đồng bộ số liệu cache + radio.</p>
+          </div>
+
+          <div class="card">
+            <h3>Thông tin triển khai</h3>
+            <ul class="list">
+              <li><strong>Env:</strong> Local Docker / VPS</li>
+              <li><strong>Service:</strong> mp3-api + adapter hợp nhất</li>
+              <li><strong>Radio:</strong> Proxy AAC VOV · 24/7</li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <h3>Điều khiển nhanh</h3>
+            <p>Chuyển sang module chi tiết để phát nhạc, radio hoặc xem logs.</p>
+            <div class="cta-row" style="margin-top:14px;">
+              <a class="primary" href="/music.html">Mở Âm nhạc</a>
+              <a class="secondary" href="/radio.html">Mở Radio</a>
+            </div>
+          </div>
+        </section>
+
+        <div class="card" style="margin-top:24px;">
+          <div class="group-title">Biểu đồ lưu lượng</div>
+          <div class="cta-row" style="margin-bottom:12px;">
+            <button class="secondary" id="btnRefreshCharts">Làm mới biểu đồ</button>
+          </div>
+          <div class="chart-grid">
+            <div class="chart-card">
+              <p class="chart-label">Phân bố request theo route</p>
+              <canvas id="chartRouteDistribution" height="240"></canvas>
+            </div>
+            <div class="chart-card">
+              <p class="chart-label">Độ trễ các request gần đây</p>
+              <canvas id="chartRecentLatency" height="240"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <section id="metricsSection" class="grid grid-2" style="margin-top:24px;">
+          <div class="card">
+            <div class="group-title">Số liệu truy cập</div>
+            <p>Tổng request: <strong id="metricTotalReq">—</strong></p>
+            <div class="cta-row" style="margin:12px 0;">
+              <button class="secondary" id="btnRefreshLogs">Làm mới số liệu</button>
+            </div>
+            <ul class="list" id="metricPerRoute">
+              <li>Chưa có dữ liệu.</li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <div class="group-title">Log truy cập gần đây</div>
+            <small>Hiển thị tối đa 10 yêu cầu mới nhất.</small>
+            <pre id="metricRecentReq" style="margin-top:12px;">(chưa có dữ liệu)</pre>
+          </div>
+        </section>
+
+        <div class="card" style="margin-top:20px;">
+          <div class="group-title">Lỗi gần đây</div>
+          <small>Trích từ các phản hồi mã ≥ 500.</small>
+          <pre id="metricRecentErrors" style="margin-top:12px;">(không có lỗi gần đây)</pre>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    &copy; 2025 MCP-AI Control Center &middot; Internal use only
+  </footer>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
+  <script type="module" src="/assets/js/dashboard.js"></script>
+  <script type="module" src="/assets/js/charts.js"></script>
+</body>
+</html>

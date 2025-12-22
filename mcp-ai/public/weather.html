@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MCP-AI · Thời tiết</title>
+  <link rel="stylesheet" href="/assets/css/dashboard.css" />
+</head>
+<body>
+  <header>
+    <div class="container">
+      <nav>
+        <div class="logo">MCP-AI · command console</div>
+        <div class="nav-links">
+          <span class="deploy-pill"><span></span>Port 8002 · Node 18</span>
+          <button id="themeToggle">Dark mode</button>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="menu-group">
+          <p>Dashboard</p>
+          <a href="/index.html" data-nav="dashboard">Tổng quan</a>
+        </div>
+        <div class="menu-group">
+          <p>Services</p>
+          <a href="/music.html" data-nav="music">Âm nhạc</a>
+          <a href="/radio.html" data-nav="radio">Radio VOV</a>
+          <a href="/youtube.html" data-nav="youtube">YouTube</a>
+        </div>
+        <div class="menu-group">
+          <p>Thiết bị</p>
+          <a href="/mcp.html" data-nav="mcp">MCP ESP32</a>
+        </div>
+        <div class="menu-group">
+          <p>Thông tin & Logs</p>
+          <a href="/news.html" data-nav="news">Tin tức</a>
+          <a href="/weather.html" data-nav="weather" class="active">Thời tiết</a>
+          <a href="/calendar.html" data-nav="calendar">Lịch âm</a>
+          <a href="/logs.html" data-nav="logs">Logs & Metrics</a>
+        </div>
+      </aside>
+
+      <div class="content">
+        <section class="hero">
+          <span class="hero-pill">Open-Meteo · realtime</span>
+          <h1>Cập nhật thời tiết cho các thành phố chính.</h1>
+          <p class="lead">Dữ liệu lấy từ `/api/weather/current`, tương thích với yêu cầu của ESP32.</p>
+        </section>
+
+        <div class="card">
+          <h3>Thời tiết hiện tại</h3>
+          <p>Open-Meteo realtime · mặc định TP.HCM.</p>
+          <div style="margin-top:16px; display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end;">
+            <label style="flex:1 1 220px;">
+              <span style="display:block; margin-bottom:6px; color:#93c5fd;">Tỉnh/Thành</span>
+              <select id="weatherCity" style="width:100%; padding:12px 14px; border-radius:12px; background:#030712; border:1px solid #374151; color:#e5e7eb;">
+                <option value="ho-chi-minh">TP. Hồ Chí Minh</option>
+                <option value="hanoi">Hà Nội</option>
+                <option value="danang">Đà Nẵng</option>
+              </select>
+            </label>
+            <button class="secondary" id="btnWeather">Cập nhật</button>
+          </div>
+          <div class="weather-card" id="weatherInfo" style="margin-top:16px;">Chưa tải dữ liệu.</div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    &copy; 2025 MCP-AI Control Center &middot; Internal use only
+  </footer>
+  <script type="module">
+    import { initShell } from '/assets/js/common.js';
+    import '/assets/js/weather.js';
+    initShell({ currentPage: 'weather' });
+  </script>
+</body>
+</html>

@@ -1,9 +1,9 @@
 version: '3.8'
 
 services:
-  mp3-api:
+  mcp-ai:
     image: node:18-alpine
-    container_name: xiaozhi-mp3-api
+    container_name: xiaozhi-mcp-ai
     restart: unless-stopped
     working_dir: /app
     ports:
@@ -14,9 +14,10 @@ services:
       - MUSIC_TOKEN=${MUSIC_TOKEN:-}
       - ADAPTER_PUBLIC_URL=${ADAPTER_PUBLIC_URL:-}
       - ADAPTER_CACHE_LIMIT=10
+      - YOUTUBE_API_KEY=${YOUTUBE_API_KEY:-AIzaSyDtHWriQ67a1nqMv-LRB1w4-vXZcESYwu8}
     volumes:
-      - ./mp3-api:/app
-    command: sh -c "npm install && npm start"
+      - ./mcp-ai:/app
+    command: sh -c "apk add --no-cache python3 py3-pip ffmpeg && python3 -m pip install --no-cache-dir --break-system-packages yt-dlp && npm install && npm start"
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8002/health"]
       interval: 30s
